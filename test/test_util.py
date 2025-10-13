@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from src.util import get_artist, get_hooktheoryid, get_title
+from src.util import _make_kern_key, get_artist, get_hooktheoryid, get_title
 
 
 # Load the JSON file once for all tests
@@ -26,3 +26,10 @@ def test_get_title(json_data):
 def test_get_hooktheoryid(json_data):
     result = get_hooktheoryid(json_data)
     assert result == "qveoYyGGodn"
+
+
+def test_make_kern_key(json_data):
+    tonic = json_data["annotations"]["keys"][0]["tonic_pitch_class"]
+    sdi = json_data["annotations"]["keys"][0]["scale_degree_intervals"]
+    result = _make_kern_key(tonic, sdi)
+    assert result == "*k[f#c#]"
