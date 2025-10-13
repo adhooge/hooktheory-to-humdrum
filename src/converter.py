@@ -16,10 +16,12 @@ def convert(json_data: Dict) -> str:
     ## Initialize melody with first key and first meter
     melody = K.melody_list_prep(keys[0][1], meters[0][1])
     ## add actual notes
-    melody += K.make_notes_from_melody(json_data["annotations"]["melody"])
+    melody += K.make_notes_from_melody(
+        json_data["annotations"]["melody"], meters
+    )
     ## Convert list to str
     melody = "\n".join(melody)
 
     # Combine strings
-    out = metadata + melody + "*-"
+    out = metadata + melody + "\n*-"
     return out
