@@ -27,3 +27,27 @@ def get_title(json_dict: Dict) -> str:
 
 def get_hooktheoryid(json_dict: Dict) -> str:
     return json_dict["hooktheory"]["id"]
+
+
+def get_key_signatures(json_dict: Dict) -> List:
+    out = []
+    keys = json_dict["annotations"]["keys"]
+    for key in keys:
+        beat = key["beat"]
+        tpc = key["tonic_pitch_class"]
+        sdi = key["scale_degree_intervals"]
+        kern_key = _make_kern_key(tpc, sdi)
+        out.append((beat, kern_key))
+    return out
+
+
+def get_meters(json_dict: Dict) -> List:
+    out = []
+    meters = json_dict["annotations"]["meters"]
+    for meter in meters:
+        beat = meter["beat"]
+        num_beats = meter["beats_per_bar"]
+        subdivision = meter["beat_unit"]
+        kern_meter = f"*M{num_beats}/{subdivision}"
+        out.append((beat, kern_meter))
+    return out

@@ -2,7 +2,13 @@ import json
 
 import pytest
 
-from src.util import _make_kern_key, get_artist, get_hooktheoryid, get_title
+from src.util import (
+    _make_kern_key,
+    get_artist,
+    get_hooktheoryid,
+    get_meters,
+    get_title,
+)
 
 
 # Load the JSON file once for all tests
@@ -33,3 +39,8 @@ def test_make_kern_key(json_data):
     sdi = json_data["annotations"]["keys"][0]["scale_degree_intervals"]
     result = _make_kern_key(tonic, sdi)
     assert result == "*k[f#c#]"
+
+
+def test_get_meters(json_data):
+    result = get_meters(json_data)
+    assert result == [(0, "*M4/4")]
