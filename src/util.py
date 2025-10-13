@@ -3,6 +3,16 @@ from typing import Dict, List
 
 from src.mode_formulas import get_accidentals_names, get_num_accidentals
 
+DURATION_TO_KERN = {
+    4: "1",  # whole note
+    2: "2",  # half note
+    1.5: "4.",  # dotted quarter note
+    1: "4",  # quarter note
+    0.75: "8.",  # dotted 8th note
+    0.5: "8",  # 8th
+    0.25: "16",  # 16th
+}
+
 
 def _make_kern_key(
     tonic_pitch_class: int, scale_degree_intervals: List[int]
