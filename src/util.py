@@ -13,6 +13,8 @@ DURATION_TO_KERN = {
     0.25: "16",  # 16th
 }
 
+KERN_TO_DURATION = {v: k for k, v in DURATION_TO_KERN.items()}
+
 
 def _make_kern_key(
     tonic_pitch_class: int, scale_degree_intervals: List[int]

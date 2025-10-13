@@ -1,7 +1,7 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from src.mode_formulas import PC_TO_NAMES
-from src.util import DURATION_TO_KERN
+from src.util import DURATION_TO_KERN, KERN_TO_DURATION
 
 
 def _make_rest(duration: float) -> str:
@@ -70,8 +70,58 @@ def melody_list_prep(key: str, meter: str):
     return out
 
 
-def make_notes_from_melody(melody: List[Dict[str, int]]) -> List[str]:
+def _get_duration_pitch_from_kern_note(note: str) -> Tuple[str, str]:
+    duration = ""
+    for i, char in enumerate(note):
+        if not char.isalpha():
+            duration += char
+        else:
+            break
+    pitch = note[i:]
+    return duration, pitch
+
+
+def _get_bar_duration(kern_meter: str) -> float:
+    """
+    Get the duration of a bar given kern meter notation e.g. '*M4/4'
+    """
+    num_beats = int(kern_meter[2])
+    subdivision = int(kern_meter[-1])
+    bar_duration = 4 * (num_beats / subdivision)
+    return bar_duration
+
+
+def _split_tied_notes(
+    kern_melody: List[str], end_tie_duration: float, bar_number: int
+) -> List[str]:
+    last_note = kern_melody.pop()
+    duration, pitch = _get_duration_pitch_from_kern_note(last_note)
+    total_duration = KERN_TO_DURATION[duration]
+    # First part of the tied note
+    start_tie_duration = total_duration - end_tie_duration
+    start_tie = DURATION_TO_KERN[start_tie_duration] + pitch
+    # Second part of the tied note
+    end_tie = DURATION_TO_KERN[end_tie_duration] + pitch
+    # Add everything to original melody
+    kern_melody += [f"[{start_tie}", f"={bar_number}", f"{end_tie}]"]
+    return kern_melody
+
+
+def make_notes_from_melody(
+    melody: List[Dict[str, int]], meters: List[Tuple[int, str]]
+) -> List[str]:
     out = []
+    # Initialize meter
+    current_meter_idx = 0
+    _, current_meter = meters[current_meter_idx]
+    bar_duration = _get_bar_duration(current_meter)
+    current_bar_duration = 0
+    bar_counter = 1  # first bar is always prepared
+    if len(meters) > 1:
+        next_meter_onset = meters[current_meter_idx + 1][0]
+    else:
+        next_meter_onset = None
+    # Initialize previous offset tracker
     current_onset = None
     previous_offset = 0
     for note in melody:
@@ -79,7 +129,20 @@ def make_notes_from_melody(melody: List[Dict[str, int]]) -> List[str]:
         if current_onset > previous_offset:
             # need to add a rest
             out.append(_make_rest(current_onset - previous_offset))
+            current_bar_duration += current_onset - previous_offset
         out.append(_kern_note(note))
         previous_offset = note["offset"]
-        # TODO: controler la duree de facon cumulative pour ajouter des silences quand c'est necessaire
+        current_bar_duration += note["offset"] - note["onset"]
+        if current_bar_duration >= bar_duration:
+            bar_counter += 1
+            current_bar_duration -= bar_duration
+            if current_bar_duration > 0:
+                # previous note should be tied between two bars
+                out = _split_tied_notes(out, current_bar_duration, bar_counter)
+            else:
+                # just add the bar line
+                out.append(f"={bar_counter}")
+    # Add final rest if necessary
+    if current_bar_duration < bar_duration:
+        out.append(_make_rest(bar_duration - current_bar_duration))
     return out
