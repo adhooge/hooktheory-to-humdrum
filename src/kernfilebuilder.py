@@ -4,6 +4,11 @@ from src.mode_formulas import PC_TO_NAMES
 from src.util import DURATION_TO_KERN
 
 
+def _make_rest(duration: float) -> str:
+    kern_duration = DURATION_TO_KERN[duration]
+    return kern_duration + "r"
+
+
 def _note_char_from_octave(pitch: str, accidental: str, octave: int) -> str:
     if accidental == "b":
         # flat in kern is '-'
@@ -67,7 +72,14 @@ def melody_list_prep(key: str, meter: str):
 
 def make_notes_from_melody(melody: List[Dict[str, int]]) -> List[str]:
     out = []
+    current_onset = None
+    previous_offset = 0
     for note in melody:
+        current_onset = note["onset"]
+        if current_onset > previous_offset:
+            # need to add a rest
+            out.append(_make_rest(current_onset - previous_offset))
         out.append(_kern_note(note))
+        previous_offset = note["offset"]
         # TODO: controler la duree de facon cumulative pour ajouter des silences quand c'est necessaire
     return out
