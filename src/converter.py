@@ -18,7 +18,7 @@ def convert(json_data: Dict) -> str:
     melody = K.melody_list_prep(keys[0][1], meters[0][1])
     ## add actual notes
     melody += K.make_notes_from_melody(
-        json_data["annotations"]["melody"], meters
+        json_data["annotations"]["melody"], meters, keys
     )
     # Prepare chords
     harmony = C.harmony_list_prep()

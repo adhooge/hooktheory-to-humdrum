@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple
 
 from src.mode_formulas import PC_TO_NAMES
-from src.util import DURATION_TO_KERN, KERN_TO_DURATION
+from src.util import DURATION_TO_KERN, KERN_TO_DURATION, _count_accidentals
 
 
 def _make_rest(duration: float) -> str:
@@ -110,7 +110,9 @@ def _split_tied_notes(
 
 
 def make_notes_from_melody(
-    melody: List[Dict[str, int]], meters: List[Tuple[int, str]]
+    melody: List[Dict[str, int]],
+    meters: List[Tuple[int, str]],
+    keys: List[Tuple[int, str]],
 ) -> List[str]:
     out = []
     # Initialize meter
@@ -123,6 +125,15 @@ def make_notes_from_melody(
         next_meter_onset = meters[current_meter_idx + 1][0]
     else:
         next_meter_onset = None
+    # Initialize key
+    current_key_idx = 0
+    _, current_key = keys[current_key_idx]
+    sharps, flats = _count_accidentals(current_key)
+    use_sharps = sharps > flats
+    if len(keys) > 1:
+        next_key_onset = keys[current_key_idx + 1][0]
+    else:
+        next_key_onset = None
     # Initialize previous offset tracker
     current_onset = None
     previous_offset = 0
@@ -143,11 +154,27 @@ def make_notes_from_melody(
             except IndexError:
                 # last meter reached
                 next_meter_onset = None
+        # Update key if necessary
+        if next_key_onset is not None and current_onset >= next_key_onset:
+            current_key_idx += 1
+            _, current_key = keys[current_key_idx]
+            sharps, flats = _count_accidentals(current_key)
+            use_sharps = sharps > flats
+            if out[-1][0] != "=":
+                # last melody token is not a bar but probably a tied note, we need to insert the new key before that token.
+                out.insert(-1, current_key)
+            else:
+                out.append(current_key)
+            try:
+                next_key_onset = keys[current_key_idx + 1][0]
+            except IndexError:
+                # last key reached
+                next_key_onset = None
         if current_onset > previous_offset:
             # need to add a rest
             out.append(_make_rest(current_onset - previous_offset))
             current_bar_duration += current_onset - previous_offset
-        out.append(_kern_note(note))
+        out.append(_kern_note(note, use_sharps))
         previous_offset = note["offset"]
         current_bar_duration += note["offset"] - note["onset"]
         if current_bar_duration >= bar_duration:

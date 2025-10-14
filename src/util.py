@@ -1,7 +1,14 @@
 import copy
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from src.mode_formulas import get_accidentals_names, get_num_accidentals
+
+
+def _count_accidentals(key_token: str) -> Tuple[int, int]:
+    sharps = key_token.count("#")
+    flats = key_token.count("-")
+    return sharps, flats
+
 
 DURATION_TO_KERN = {
     4: "1",  # whole note

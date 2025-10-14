@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 
 from src.kernfilebuilder import _get_duration_pitch_from_kern_note
 from src.mode_formulas import PC_TO_NAMES
-from src.util import DURATION_TO_KERN, KERN_TO_DURATION
+from src.util import DURATION_TO_KERN, KERN_TO_DURATION, _count_accidentals
 
 CHORD_INTERVALS = {
     "major": [4, 3],  # Tonic, major 3rd, perfect 5th
@@ -12,7 +12,7 @@ CHORD_INTERVALS = {
 
 CHORD_DISPLAY_NAMES = {
     "major": lambda x: x.upper(),
-    "minor": lambda x: x.lower() + "m",
+    "minor": lambda x: x.upper() + "m",
 }
 
 
@@ -46,12 +46,6 @@ def make_chord_kern(chord: Dict, use_sharps: bool = True) -> str:
     return token
 
 
-def _count_accidentals(key_token: str) -> Tuple[int, int]:
-    sharps = key_token.count("#")
-    flats = key_token.count("-")
-    return sharps, flats
-
-
 def _make_tied_notes(note_token: str, end_tie_duration: float) -> List[str]:
     duration, pitch = _get_duration_pitch_from_kern_note(note_token)
     total_duration = KERN_TO_DURATION[duration]
@@ -71,14 +65,9 @@ def make_harmony_list(
 ) -> List[str]:
     out = []
     # Initialize key
-    current_key_idx = 0
-    _, current_key = keys[current_key_idx]
+    _, current_key = keys[0]
     sharps, flats = _count_accidentals(current_key)
     use_sharps = sharps >= flats
-    if len(keys) > 1:
-        next_key_onset = keys[current_key_idx + 1][0]
-    else:
-        next_key_onset = None
     # Initialize melody onset tracker
     melody_onset = 0
     # Prepare chord variables
@@ -102,7 +91,11 @@ def make_harmony_list(
             i += 1
             continue
         elif note_token[0] == "*":
-            # can be a new meter or key token, just skip it
+            # can be a new meter or key token
+            if note_token[1] == "k":
+                current_key = note_token
+                sharps, flats = _count_accidentals(current_key)
+                use_sharps = sharps >= flats
             out.append("*")
             i += 1
             continue
