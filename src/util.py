@@ -12,7 +12,10 @@ def _count_accidentals(key_token: str) -> Tuple[int, int]:
 
 
 DURATION_TO_KERN = {
+    # 12: "0.",  # dotted breve
+    # 8: "0",  # breve
     4: "1",  # whole note
+    3.5: "2..",  # double dotted half note
     3: "2.",  # dotted half note
     2: "2",  # half note
     1.75: "4..",  # double dotted quarter note
