@@ -6,6 +6,9 @@ import src.util as U
 
 
 def convert(json_data: Dict) -> str:
+    # check data validity before processing
+    if json_data["annotations"]["melody"] is None:
+        return ""
     # Prepare metadata
     title = U.get_title(json_data)
     artist = U.get_artist(json_data)
