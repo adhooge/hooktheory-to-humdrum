@@ -6,6 +6,7 @@ from src.util import (
     KERN_TO_DURATION,
     _count_accidentals,
     find_best_durations_combination,
+    find_best_note_combination,
 )
 
 
@@ -138,6 +139,40 @@ def _get_bar_duration(kern_meter: str) -> float:
     return bar_duration
 
 
+def _split_tied_notes2(
+    kern_melody: List[str], end_tie_duration: float, bar_number: int
+) -> List[str]:
+    last_note = kern_melody.pop()
+    if "]" in last_note:
+        # look for all tied notes
+        notes = [last_note]
+        tmp = kern_melody.pop()
+        notes.insert(0, tmp)
+        while not ("[" in tmp):
+            tmp = kern_melody.pop()
+            notes.insert(0, tmp)
+        # get total duration and pitch
+        _, pitch = _get_duration_pitch_from_kern_note(last_note)
+        total_duration = 0
+        for note in notes:
+            dur, _ = _get_duration_pitch_from_kern_note(note)
+            total_duration += KERN_TO_DURATION[dur]
+    else:
+        duration, pitch = _get_duration_pitch_from_kern_note(last_note)
+        total_duration = KERN_TO_DURATION[duration]
+    durations = find_best_note_combination(total_duration, end_tie_duration)
+    last_duration = durations.pop()
+    for i, dur in enumerate(durations):
+        token = dur + pitch
+        if i == 0:
+            token = "[" + token
+        kern_melody.append(token)
+    kern_melody.append(f"={bar_number}")
+    last_token = last_duration + pitch
+    kern_melody.append(last_token + "]")
+    return kern_melody
+
+
 def _split_tied_notes(
     kern_melody: List[str], end_tie_duration: float, bar_number: int
 ) -> List[str]:
@@ -219,6 +254,17 @@ def make_notes_from_melody(
             # need to add a rest
             out.extend(_make_rest(current_onset - previous_offset))
             current_bar_duration += current_onset - previous_offset
+            if current_bar_duration >= bar_duration:
+                bar_counter += 1
+                current_bar_duration -= bar_duration
+                if current_bar_duration > 0:
+                    # previous note should be tied between two bars
+                    out = _split_tied_notes2(
+                        out, current_bar_duration, bar_counter
+                    )
+                else:
+                    # just add the bar line
+                    out.append(f"={bar_counter}")
         out.extend(_kern_note(note, use_sharps))
         previous_offset = note["offset"]
         current_bar_duration += note["offset"] - note["onset"]
@@ -227,7 +273,7 @@ def make_notes_from_melody(
             current_bar_duration -= bar_duration
             if current_bar_duration > 0:
                 # previous note should be tied between two bars
-                out = _split_tied_notes(out, current_bar_duration, bar_counter)
+                out = _split_tied_notes2(out, current_bar_duration, bar_counter)
             else:
                 # just add the bar line
                 out.append(f"={bar_counter}")

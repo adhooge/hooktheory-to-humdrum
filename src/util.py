@@ -26,6 +26,64 @@ DURATION_TO_KERN = {
 KERN_TO_DURATION = {v: k for k, v in DURATION_TO_KERN.items()}
 
 
+def find_best_note_combination(
+    duration, last_note_duration=None, tolerance=1e-6
+):
+    """
+    Find an efficient representation (fewest notes) of a total duration
+    using standard note values and dotted versions, with an optional constraint
+    that the final tied note must have a given duration.
+
+    Parameters:
+        duration: float (1 = whole note)
+        last_note_duration: optional float (if set, final note duration is fixed)
+        tolerance: float for rounding tolerance
+    """
+    usable_durations = list(DURATION_TO_KERN.keys())
+
+    sorted_dur = sorted(usable_durations, reverse=True)
+
+    result = []
+    last_note = None
+    remaining = duration
+
+    if last_note_duration is not None:
+        # Check if last note exists in our known durations
+        matching_notes = [
+            dur
+            for dur in sorted_dur
+            if abs(dur - last_note_duration) < tolerance
+        ]
+        if not matching_notes:
+            raise ValueError(
+                f"No standard note with duration {last_note_duration}"
+            )
+
+        # Subtract the last note
+        remaining -= last_note_duration
+        last_note = matching_notes[0]  # we'll add it at the end
+
+    for val in sorted_dur:
+        count = int(remaining // val)
+        if count > 0:
+            result.extend([val] * count)
+            remaining -= count * val
+        if remaining < 0:
+            raise ValueError
+        if remaining < tolerance:
+            break
+
+    if remaining > tolerance:
+        print(
+            f"⚠️ Warning: Could not perfectly represent duration {duration}, remainder={remaining}"
+        )
+
+    if last_note is not None:
+        result.append(last_note)
+
+    return [DURATION_TO_KERN[r] for r in result]
+
+
 def find_best_durations_combination(duration, tolerance=1e-6):
     """
     Find the most efficient representation (fewest notes) of a total duration
