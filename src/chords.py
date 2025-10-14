@@ -164,20 +164,29 @@ def make_harmony_list(
             out.append("*")
             i += 1
             continue
-        if chord_onset is not None and melody_onset >= chord_onset:
+        entered_while = False
+        while chord_onset is not None and melody_onset >= chord_onset:
+            entered_while = True
             out.append(make_chord_kern(current_chord, use_sharps))
+            split_notes = False
             if melody_onset > chord_onset:
+                split_notes = True
                 # To write the chord properly, we need to split the melody here
                 split = i - 1
+                split_token = melody[split]
+                if split_token[0] == "=":
+                    # splitting right on a bar line, go back one token
+                    split = i - 2
+                    split_token = melody[split]
+                    # we also need to invert the last two tokens in out
+                    out.insert(-1, out.pop())
                 melody_left = melody[:split]
                 melody_right = melody[split + 1 :]
-                split_token = melody[split]
                 new_tokens = _make_tied_notes(
                     split_token, melody_onset - chord_onset
                 )
                 i += 1
                 melody = melody_left + new_tokens + melody_right
-                out.append(".")
             try:
                 current_chord = harmony_json[next_chord_idx]
                 next_chord_idx += 1
@@ -185,7 +194,12 @@ def make_harmony_list(
             except IndexError:
                 # we already used all chords
                 chord_onset = None
-        else:
+            if split_notes:
+                if (chord_onset is not None and chord_onset > melody_onset) or (
+                    chord_onset is None and len(out) < len(melody)
+                ):
+                    out.append(".")
+        if not entered_while:
             out.append(".")
         duration, _ = _get_duration_pitch_from_kern_note(note_token)
         melody_onset += KERN_TO_DURATION[duration]
