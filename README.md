@@ -67,6 +67,7 @@ All tests should pass!
 
 Currently there are still a few issues with the code in this repo:
 
+- Support for more chords need to be added manually in `src/chords.py`.
 - Enharmonic note names are not always chosen correctly, the current heuristic is to favour sharps or flats if it reduces the global number of accidentals.
 - There are still a few issues with tied notes in specific situations and the interaction with chords, some files cannot be processed because of that.
 - The resulting scores can be ugly because the beams need to be specified manually in humdrum, and proper beaming require to look at the current meter and is currently out-of-scope.
