@@ -8,6 +8,11 @@ from src.util import DURATION_TO_KERN, KERN_TO_DURATION, _count_accidentals
 CHORD_INTERVALS = {
     "major": [4, 3],  # Tonic, major 3rd, perfect 5th
     "minor": [3, 4],  # Tonic, minor 3rd, perfect 5th
+    "diminished": [3, 3],  # Tonic, minor 3rd, diminished 5th
+    "sus4": [5, 2],  # Tonic, p4th, p5th
+    "add9": [4, 3, 7],  # Tonic, M3rd, p5th, M9th
+    "madd9": [3, 4, 7],  # Tonic, m3rd, p5th, M9th
+    "7sus4": [5, 2, 3],  # Tonic, p4th, p5th, minor 7th
     "seventh": [4, 3, 3],  # Tonic, major 3rd, P5th, minor 7th
     "minseventh": [3, 4, 3],  # Tonic, minor 3rd, P5th, minor 7th
     "majseventh": [4, 3, 4],  # Tonic, major 3rd, P5th, major 7th
@@ -16,6 +21,11 @@ CHORD_INTERVALS = {
 CHORD_DISPLAY_NAMES = {
     "major": lambda x: x.upper(),
     "minor": lambda x: x.upper() + "m",
+    "diminished": lambda x: x.upper() + "dim",
+    "sus4": lambda x: x.upper() + "sus4",
+    "add9": lambda x: x.upper() + "add9",
+    "madd9": lambda x: x.upper() + "madd9",
+    "7sus4": lambda x: x.upper() + "7sus4",
     "seventh": lambda x: x.upper() + "7",
     "minseventh": lambda x: x.upper() + "min7",
     "majseventh": lambda x: x.upper() + "maj7",
@@ -33,6 +43,29 @@ def _invert_chord(
             third = (root + chord["root_position_intervals"][0]) % 12
             sharp_3, flat_3 = PC_TO_NAMES[third]
             bass = sharp_3 if use_sharps else flat_3
+            out += f"/{bass}"
+        case 2:
+            # Get pitch class of fifth to add correct bass note
+            root = chord["root_pitch_class"]
+            fifth = (
+                root
+                + chord["root_position_intervals"][0]
+                + chord["root_position_intervals"][1]
+            ) % 12
+            sharp_5, flat_5 = PC_TO_NAMES[fifth]
+            bass = sharp_5 if use_sharps else flat_5
+            out += f"/{bass}"
+        case 3:
+            # Get pitch class of seventh to add correct bass note
+            root = chord["root_pitch_class"]
+            seventh = (
+                root
+                + chord["root_position_intervals"][0]
+                + chord["root_position_intervals"][1]
+                + chord["root_position_intervals"][2]
+            ) % 12
+            sharp_7, flat_7 = PC_TO_NAMES[seventh]
+            bass = sharp_7 if use_sharps else flat_7
             out += f"/{bass}"
         case _:
             raise ValueError(
