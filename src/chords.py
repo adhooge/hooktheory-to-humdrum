@@ -16,6 +16,25 @@ CHORD_DISPLAY_NAMES = {
 }
 
 
+def _invert_chord(
+    chord: Dict, token: str, inversion: int, use_sharps: bool = True
+) -> str:
+    out = token
+    match inversion:
+        case 1:
+            # Get pitch class of third to add correct bass note
+            root = chord["root_pitch_class"]
+            third = (root + chord["root_position_intervals"][0]) % 12
+            sharp_3, flat_3 = PC_TO_NAMES[third]
+            bass = sharp_3 if use_sharps else flat_3
+            out += f"/{bass}"
+        case _:
+            raise ValueError(
+                f"Currently unsupported inversion {inversion} for chord {chord}"
+            )
+    return out
+
+
 def harmony_list_prep():
     # Define basic text score
     out = ["**text"]
@@ -43,6 +62,10 @@ def make_chord_kern(chord: Dict, use_sharps: bool = True) -> str:
         raise ValueError(f"Unknown chord nature with intervals {intervals}")
     # Prepare chord token
     token = CHORD_DISPLAY_NAMES[nature](root)
+    # Deal with inversion
+    inversion = chord["inversion"]
+    if inversion != 0:
+        token = _invert_chord(chord, token, inversion, use_sharps)
     return token
 
 
