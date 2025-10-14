@@ -121,7 +121,7 @@ def make_harmony_list(
             out.append("*")
             i += 1
             continue
-        if melody_onset >= chord_onset:
+        if chord_onset is not None and melody_onset >= chord_onset:
             out.append(make_chord_kern(current_chord, use_sharps))
             if melody_onset > chord_onset:
                 # To write the chord properly, we need to split the melody here
@@ -141,7 +141,7 @@ def make_harmony_list(
                 chord_onset = current_chord["onset"]
             except IndexError:
                 # we already used all chords
-                pass
+                chord_onset = None
         else:
             out.append(".")
         duration, _ = _get_duration_pitch_from_kern_note(note_token)
