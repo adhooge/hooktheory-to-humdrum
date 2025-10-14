@@ -62,15 +62,34 @@ KEY_SIGNATURES = {
 
 
 def identify_mode(intervals: List[int]) -> str:
+    """identify_mode.
+    Return mode name based on its set of scale degree intervals
+
+    Args:
+        intervals (List[int]): intervals between scale degrees in number of semitones. The last interval back to the tonic is omitted.
+
+    Returns:
+        str: mode name
+    """
     for mode, sdi in MODES_INTERVALS.items():
         if intervals == sdi:
             return mode
     raise ValueError(
-        f"Unknown mode with scale degree intervals {scale_degree_intervals}"
+        f"Unknown mode with scale degree intervals {intervals}"
     )
 
 
 def get_num_accidentals(modal_tonic: int, intervals: List[int]) -> int:
+    """get_num_accidentals.
+    Return the number of accidentals for a specific mode
+
+    Args:
+        modal_tonic (int): modal_tonic
+        intervals (List[int]): intervals between scale degrees in number of semitones. The last interval back to the tonic is omitted.
+
+    Returns:
+        int: number of accidentals, positive for sharps, negative for flats.
+    """
     mode = identify_mode(intervals)
 
     # Find parent major pitch class
@@ -85,6 +104,15 @@ def get_num_accidentals(modal_tonic: int, intervals: List[int]) -> int:
 
 
 def get_accidentals_names(num_accidentals: int) -> List[str]:
+    """get_accidentals_names.
+    Return the list of note names with accidentals based on the number of accidentals
+
+    Args:
+        num_accidentals (int): number of accidentals, positive for sharps, negative for flats.
+
+    Returns:
+        List[str]: name of the notes with accidentals
+    """
     if num_accidentals >= 0:
         return SHARPS[:num_accidentals]
     else:

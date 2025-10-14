@@ -11,10 +11,18 @@ from src.util import (
 
 
 def _make_rest(duration: float) -> List[str]:
+    """_make_rest.
+    make krn token(s) for representing a rest
+
+    Args:
+        duration (float): duration of the rest in quarter notes
+
+    Returns:
+        List[str]: the text tokens representing the rest note. There can be several tied tokens if the duration calls for it.
+    """
     out = []
     try:
         durations = [DURATION_TO_KERN[duration]]
-        # out += DURATION_TO_KERN[duration]
     except KeyError:
         # weird duration should be represented with tied notes
         print(f"Couldn't find duration {duration} in known durations")
@@ -37,6 +45,18 @@ def _make_rest(duration: float) -> List[str]:
 
 
 def _note_char_from_octave(pitch: str, accidental: str, octave: int) -> str:
+    """_note_char_from_octave.
+    Apply the rules of **kern formatting to indicate note octaves. 
+    We assume that octave=0 in hooktheory is the octave of C4
+
+    Args:
+        pitch (str): pitch class char representation
+        accidental (str): accidental char (b or #)
+        octave (int): octave numbers from hooktheory
+
+    Returns:
+        str: kern representation of the note in the correct octave
+    """
     if accidental == "b":
         # flat in kern is '-'
         accidental = "-"
@@ -59,16 +79,24 @@ def _kern_note(
     open_tie: bool = False,
     close_tie: bool = False,
 ) -> List[str]:
-    """
-    Inputs:
-    - note (Dict[str, int]), as taken from hooktheory representation. Should have 4 keys: onset, offset, octave, and pitch_class.
-    Output:
-    - Corresponding kern notation
+    """_kern_note.
+    Generate token(s) in kern notation representing a musical note.
+
+    Args:
+        pitch_class (int): pitch_class of the note as a number between 0 and 11
+        octave (int): octave as a positive or negative integer
+        duration (float): duration in quarter-lengths
+        use_sharps (bool): flag to favour enharmonic names with sharps
+        no_tie_constraints (bool): flag to ignore open_tie and close_tie arguments
+        open_tie (bool): flag to enforce the first output token to open a tie
+        close_tie (bool): flag to enforce the last output token to close a tie
+
+    Returns:
+        List[str]: the text tokens representing the musical note. There can be several tied tokens if the duration calls for it.
     """
     out = []
     try:
         durations = [DURATION_TO_KERN[duration]]
-        # out += DURATION_TO_KERN[duration]
     except KeyError:
         # weird duration should be represented with tied notes
         print(f"Couldn't find duration {duration} in known durations")
@@ -94,6 +122,18 @@ def _kern_note(
 
 
 def make_reference_records(artist: str, title: str, htid: str) -> str:
+    """make_reference_records.
+    Prepare the **kern "reference records" of the file
+    The hooktheoryid is added as a general comment
+
+    Args:
+        artist (str): artist name
+        title (str): title of the song
+        htid (str): hooktheoryid
+
+    Returns:
+        str: string header to use as is in the final .krn file
+    """
     COM = f"!!!COM: {artist}\n"
     OTL = f"!!!OTL: {title}\n"
     RNB = f"!!!RNB: hooktheoryid: {htid}\n"
@@ -101,6 +141,13 @@ def make_reference_records(artist: str, title: str, htid: str) -> str:
 
 
 def melody_list_prep(key: str, meter: str):
+    """melody_list_prep.
+    Create headers for **kern notation of the melody 
+
+    Args:
+        key (str): krn token representing the key signature at the beginning of the melody
+        meter (str): krn token representing the meter at the beginning of the melody
+    """
     # Define basic kern score
     out = ["**kern"]
     # Melodies are written in Treble clef by default
@@ -114,6 +161,15 @@ def melody_list_prep(key: str, meter: str):
 
 
 def _get_duration_pitch_from_kern_note(note: str) -> Tuple[str, str]:
+    """_get_duration_pitch_from_kern_note.
+    Extract the duration and the pitch of a note based on its kern token
+
+    Args:
+        note (str): krn token representing the note
+
+    Returns:
+        Tuple[str, str]: (duration, pitch)
+    """
     duration = ""
     for i, char in enumerate(note):
         if not char.isalpha():
@@ -136,61 +192,6 @@ def _get_bar_duration(kern_meter: str) -> float:
     return bar_duration
 
 
-def _split_tied_notes2(
-    kern_melody: List[str],
-    end_tie_duration: float,
-    bar_number: int,
-    is_rest: bool = False,
-) -> List[str]:
-    last_note = kern_melody.pop()
-    if "]" in last_note:
-        # look for all tied notes
-        notes = [last_note]
-        tmp = kern_melody.pop()
-        notes.insert(0, tmp)
-        while not ("[" in tmp):
-            tmp = kern_melody.pop()
-            notes.insert(0, tmp)
-        # get total duration and pitch
-        _, pitch = _get_duration_pitch_from_kern_note(last_note)
-        total_duration = 0
-        for note in notes:
-            dur, _ = _get_duration_pitch_from_kern_note(note)
-            total_duration += KERN_TO_DURATION[dur]
-    else:
-        duration, pitch = _get_duration_pitch_from_kern_note(last_note)
-        total_duration = KERN_TO_DURATION[duration]
-    durations = find_best_note_combination(total_duration, end_tie_duration)
-    last_duration = durations.pop()
-    for i, dur in enumerate(durations):
-        token = dur + pitch
-        if i == 0:
-            if not is_rest:
-                # no need to tie rests
-                token = "[" + token
-        kern_melody.append(token)
-    kern_melody.append(f"={bar_number}")
-    last_token = last_duration + pitch
-    if not is_rest:
-        last_token = last_token + "]"
-    kern_melody.append(last_token)
-    return kern_melody
-
-
-def _split_tied_notes(
-    kern_melody: List[str], end_tie_duration: float, bar_number: int
-) -> List[str]:
-    last_note = kern_melody.pop()
-    duration, pitch = _get_duration_pitch_from_kern_note(last_note)
-    total_duration = KERN_TO_DURATION[duration]
-    # First part of the tied note
-    start_tie_duration = total_duration - end_tie_duration
-    start_tie = DURATION_TO_KERN[start_tie_duration] + pitch
-    # Second part of the tied note
-    end_tie = DURATION_TO_KERN[end_tie_duration] + pitch
-    # Add everything to original melody
-    kern_melody += [f"[{start_tie}", f"={bar_number}", f"{end_tie}]"]
-    return kern_melody
 
 
 def make_notes_from_melody(
@@ -198,6 +199,17 @@ def make_notes_from_melody(
     meters: List[Tuple[int, str]],
     keys: List[Tuple[int, str]],
 ) -> List[str]:
+    """make_notes_from_melody.
+    Generate the list of krn tokens representing a melody from hooktheory
+
+    Args:
+        melody (List[Dict[str, int]]): Dictionary representing the melody of a song as taken from hooktheory's json
+        meters (List[Tuple[int, str]]): list of (onset, meter_token) for this song
+        keys (List[Tuple[int, str]]): list of (onset, key_token) for this song
+
+    Returns:
+        List[str]: list of krn tokens representing the melody
+    """
     out = []
     # Initialize meter
     current_meter_idx = 0
@@ -256,8 +268,8 @@ def make_notes_from_melody(
             except IndexError:
                 # last key reached
                 next_key_onset = None
+        # Add a Rest if there's a jump in onsets
         if current_onset > previous_offset:
-            # need to add a rest
             rest_duration = current_onset - previous_offset
             if current_bar_duration + rest_duration >= bar_duration:
                 first_rest_duration = bar_duration - current_bar_duration
@@ -278,9 +290,11 @@ def make_notes_from_melody(
             else:
                 out.extend(_make_rest(rest_duration))
                 current_bar_duration += rest_duration
+        # Add the note, possible as a set of tied notes if it goes over a barline
         note_duration = note["offset"] - note["onset"]
         previous_offset = note["offset"]
         if current_bar_duration + note_duration >= bar_duration:
+            ## The note overlaps two measures
             first_note_duration = bar_duration - current_bar_duration
             remaining_note_duration = note_duration - first_note_duration
             out.extend(
@@ -315,6 +329,7 @@ def make_notes_from_melody(
             else:
                 current_bar_duration = 0
         else:
+            ## The note can be added directly in one measure
             out.extend(
                 _kern_note(
                     pitch_class,

@@ -35,6 +35,18 @@ CHORD_DISPLAY_NAMES = {
 def _invert_chord(
     chord: Dict, token: str, inversion: int, use_sharps: bool = True
 ) -> str:
+    """_invert_chord.
+    Define common possible inversions, that affect the displayed name of the chord 
+
+    Args:
+        chord (Dict): chord json representation from hooktheory
+        token (str): token representing the chord as text, to use in 
+        inversion (int): inversion number
+        use_sharps (bool): flag to use note names with sharps rather than flats
+
+    Returns:
+        str: token representing the inverted chord
+    """
     out = token
     match inversion:
         case 1:
@@ -75,6 +87,9 @@ def _invert_chord(
 
 
 def harmony_list_prep():
+    """harmony_list_prep.
+    Create headers for **kern notation of chords
+    """
     # Define basic text score
     out = ["**text"]
     # fill empty lines to match the melody header
@@ -87,6 +102,16 @@ def harmony_list_prep():
 
 
 def make_chord_kern(chord: Dict, use_sharps: bool = True) -> str:
+    """make_chord_kern.
+    Create text token to represent a chord in **kern
+    
+    Args:
+        chord (Dict): chord json representation from hooktheory
+        use_sharps (bool): flag to favour enharmonic notes with sharps
+
+    Returns:
+        str: chord token
+    """
     # Get chord root name
     sharp_root, flat_root = PC_TO_NAMES[chord["root_pitch_class"]]
     root = sharp_root if use_sharps else flat_root
@@ -113,6 +138,16 @@ def make_chord_kern(chord: Dict, use_sharps: bool = True) -> str:
 
 
 def _make_tied_notes(note_token: str, end_tie_duration: float) -> List[str]:
+    """_make_tied_notes.
+    Split an existing note token in kern representation between two tied-notes
+
+    Args:
+        note_token (str): note_token to split
+        end_tie_duration (float): duration (in quarter notes) of the second tied note
+
+    Returns:
+        List[str]: tied notes tokens
+    """
     duration, pitch = _get_duration_pitch_from_kern_note(note_token)
     total_duration = KERN_TO_DURATION[duration]
     # First part of the tied note
@@ -128,7 +163,18 @@ def make_harmony_list(
     harmony_json: List[Dict],
     melody_tokens: List[str],
     keys: List[Tuple[int, str]],
-) -> List[str]:
+    ) -> Tuple[List[str], List[str]]:
+    """make_harmony_list.
+    Iterate over the json harmonic content to generate the kern notation for the chords.
+
+    Args:
+        harmony_json (List[Dict]): list of dict objects representing the chords, from hooktheory's json.
+        melody_tokens (List[str]): list of str objects corresponding to the **kern notation of the melody.
+        keys (List[Tuple[int, str]]): List of (onset, key_token) pairs in case the key changes during the song. 
+
+    Returns:
+        Tuple[List[str], List[str]]: 1st list is the **kern notation for the chords, 2nd list for the melody because it can be modified by this function
+    """
     out = []
     # Initialize key
     _, current_key = keys[0]
@@ -140,7 +186,6 @@ def make_harmony_list(
     current_chord = harmony_json[0]
     chord_onset = current_chord["onset"]
     next_chord_idx = 1
-    chord_added = False
     # Strip melody headers
     melody_headers = []
     melody = copy.deepcopy(melody_tokens)
@@ -165,6 +210,7 @@ def make_harmony_list(
             i += 1
             continue
         entered_while = False
+        # Write chord token if the onset is reached
         while chord_onset is not None and melody_onset >= chord_onset:
             entered_while = True
             out.append(make_chord_kern(current_chord, use_sharps))

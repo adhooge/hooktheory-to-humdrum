@@ -6,6 +6,15 @@ import src.util as U
 
 
 def convert(json_data: Dict) -> str:
+    """convert.
+    Process a json dictionary from hooktheory and returns a str with the corresponding notation for a .krn file
+
+    Args:
+        json_data (Dict): json_data representing a song in the hooktheory dataset
+
+    Returns:
+        str: output string of the correctly formatted .krn notation
+    """
     # check data validity before processing
     if (
         json_data["annotations"]["melody"] is None

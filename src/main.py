@@ -1,3 +1,6 @@
+"""
+Main Processing script to convert json notation from hook theory to **kern files.
+"""
 import json
 import pathlib
 
@@ -19,6 +22,7 @@ print(
     f"{len(list(OUTPATH.glob('*.krn')))} files were already processed, they will be skipped automatically."
 )
 
+# Skipping a few complex files to process other easy ones
 SKIP = ["pJkmZNKkmqn", "RZwxKnNjged", "-kwxANXDoKG"]
 
 for k, v in (pbar := tqdm(data.items())):
