@@ -1,5 +1,9 @@
 # Convert HookTheory json files to **kern leadsheets
 
+Demo project to convert files from the HookTheory format (taken [here](https://github.com/chrisdonahue/sheetsage-data/blob/main/hooktheory/Hooktheory.json.gz)) to **kern notation (see [Humdrum](https://www.humdrum.org/)).
+
+## Setup
+
 This project uses **Python 3.10**.
 
 To setup a virtual environment, you can for instance do:
