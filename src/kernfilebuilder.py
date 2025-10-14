@@ -77,7 +77,9 @@ def _get_duration_pitch_from_kern_note(note: str) -> Tuple[str, str]:
             duration += char
         else:
             break
+    duration = duration.lstrip("[")
     pitch = note[i:]
+    pitch = pitch.rstrip("]")
     return duration, pitch
 
 

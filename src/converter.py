@@ -1,5 +1,6 @@
 from typing import Dict
 
+import src.chords as C
 import src.kernfilebuilder as K
 import src.util as U
 
@@ -19,9 +20,23 @@ def convert(json_data: Dict) -> str:
     melody += K.make_notes_from_melody(
         json_data["annotations"]["melody"], meters
     )
+    # Prepare chords
+    harmony = C.harmony_list_prep()
+    harmony_tokens, melody = C.make_harmony_list(
+        json_data["annotations"]["harmony"], melody, keys
+    )
+    harmony += harmony_tokens
+    # print(len(harmony), len(melody))
+    # for i in range(100):
+    #     print(harmony[i], melody[i])
+    # Final string preparation
+    melody.append("\n*-")
+    harmony.append("*-")
+    ## Merge Melody and harmony
+    out_list = [melody[i] + "\t" + harmony[i] for i in range(len(melody))]
     ## Convert list to str
-    melody = "\n".join(melody)
+    out_str = "\n".join(out_list)
 
     # Combine strings
-    out = metadata + melody + "\n*-"
+    out = metadata + out_str
     return out
