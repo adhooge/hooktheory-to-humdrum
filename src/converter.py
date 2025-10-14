@@ -26,9 +26,6 @@ def convert(json_data: Dict) -> str:
         json_data["annotations"]["harmony"], melody, keys
     )
     harmony += harmony_tokens
-    # print(len(harmony), len(melody))
-    # for i in range(100):
-    #     print(harmony[i], melody[i])
     # Final string preparation
     melody.append("*-")
     harmony.append("*-")

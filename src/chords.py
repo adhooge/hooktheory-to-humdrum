@@ -95,7 +95,6 @@ def make_harmony_list(
     melody_onset = 0
     # Prepare chord variables
     current_chord = harmony_json[0]
-    print(current_chord)
     chord_onset = current_chord["onset"]
     next_chord_idx = 1
     chord_added = False
