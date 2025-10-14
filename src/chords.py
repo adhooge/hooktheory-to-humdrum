@@ -101,6 +101,11 @@ def make_harmony_list(
             out.append(note_token)
             i += 1
             continue
+        elif note_token[0] == "*":
+            # can be a new meter or key token, just skip it
+            out.append("*")
+            i += 1
+            continue
         if melody_onset >= chord_onset:
             out.append(make_chord_kern(current_chord, use_sharps))
             if melody_onset > chord_onset:

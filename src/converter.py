@@ -30,7 +30,7 @@ def convert(json_data: Dict) -> str:
     # for i in range(100):
     #     print(harmony[i], melody[i])
     # Final string preparation
-    melody.append("\n*-")
+    melody.append("*-")
     harmony.append("*-")
     ## Merge Melody and harmony
     out_list = [melody[i] + "\t" + harmony[i] for i in range(len(melody))]

@@ -128,6 +128,21 @@ def make_notes_from_melody(
     previous_offset = 0
     for note in melody:
         current_onset = note["onset"]
+        # Update meter if necessary
+        if next_meter_onset is not None and current_onset >= next_meter_onset:
+            current_meter_idx += 1
+            _, current_meter = meters[current_meter_idx]
+            if out[-1][0] != "=":
+                # last melody token is not a bar but probably a tied note, we need to insert the new meter before that token.
+                out.insert(-1, current_meter)
+            else:
+                out.append(current_meter)
+            bar_duration = _get_bar_duration(current_meter)
+            try:
+                next_meter_onset = meters[current_meter_idx + 1][0]
+            except IndexError:
+                # last meter reached
+                next_meter_onset = None
         if current_onset > previous_offset:
             # need to add a rest
             out.append(_make_rest(current_onset - previous_offset))
