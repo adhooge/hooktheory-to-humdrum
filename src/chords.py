@@ -62,6 +62,10 @@ def make_chord_kern(chord: Dict, use_sharps: bool = True) -> str:
         raise ValueError(f"Unknown chord nature with intervals {intervals}")
     # Prepare chord token
     token = CHORD_DISPLAY_NAMES[nature](root)
+    ## Make flat lowercase if there was any
+    if len(root) > 1 and root[-1] == "b":
+        assert token[1] == "B"
+        token = token[0] + "b" + token[2:]
     # Deal with inversion
     inversion = chord["inversion"]
     if inversion != 0:
