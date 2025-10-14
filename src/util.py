@@ -1,4 +1,5 @@
 import copy
+from itertools import product
 from typing import Dict, List, Tuple
 
 from src.mode_formulas import get_accidentals_names, get_num_accidentals
@@ -12,7 +13,9 @@ def _count_accidentals(key_token: str) -> Tuple[int, int]:
 
 DURATION_TO_KERN = {
     4: "1",  # whole note
+    3: "2.",  # dotted half note
     2: "2",  # half note
+    1.75: "4..",  # double dotted quarter note
     1.5: "4.",  # dotted quarter note
     1: "4",  # quarter note
     0.75: "8.",  # dotted 8th note
@@ -21,6 +24,38 @@ DURATION_TO_KERN = {
 }
 
 KERN_TO_DURATION = {v: k for k, v in DURATION_TO_KERN.items()}
+
+
+def find_best_durations_combination(duration, tolerance=1e-6):
+    """
+    Find the most efficient representation (fewest notes) of a total duration
+    using standard note values and dotted versions.
+
+    duration: float (1 = whole note)
+    """
+    usable_durations = list(DURATION_TO_KERN.keys())
+
+    # Sort descending by value (greedy-friendly)
+    sorted_dur = sorted(usable_durations, reverse=True)
+
+    result = []
+    remaining = duration
+
+    for val in sorted_dur:
+        count = int(remaining // val)
+        if count > 0:
+            result.extend([val] * count)
+            remaining -= count * val
+        if remaining < 0:
+            raise ValueError
+        if remaining < tolerance:
+            break
+
+    if remaining > tolerance:
+        print(
+            f"⚠️ Warning: Could not perfectly represent duration {duration}, remainder={remaining}"
+        )
+    return [DURATION_TO_KERN[r] for r in result]
 
 
 def _make_kern_key(

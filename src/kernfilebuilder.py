@@ -1,12 +1,38 @@
 from typing import Dict, List, Tuple
 
 from src.mode_formulas import PC_TO_NAMES
-from src.util import DURATION_TO_KERN, KERN_TO_DURATION, _count_accidentals
+from src.util import (
+    DURATION_TO_KERN,
+    KERN_TO_DURATION,
+    _count_accidentals,
+    find_best_durations_combination,
+)
 
 
-def _make_rest(duration: float) -> str:
-    kern_duration = DURATION_TO_KERN[duration]
-    return kern_duration + "r"
+def _make_rest(duration: float) -> List[str]:
+    out = []
+    try:
+        durations = [DURATION_TO_KERN[duration]]
+        # out += DURATION_TO_KERN[duration]
+    except KeyError:
+        # weird duration should be represented with tied notes
+        print(f"Couldn't find duration {duration} in known durations")
+        durations = find_best_durations_combination(duration)
+    for i, dur in enumerate(durations):
+        token = ""
+        if len(durations) == 1:
+            token += dur
+            token += "r"
+            out.append(token)
+        else:
+            if i == 0:
+                token = f"[{dur}r"
+            elif i == len(durations) - 1:
+                token = f"{dur}r]"
+            else:
+                token = f"{dur}r"
+            out.append(token)
+    return out
 
 
 def _note_char_from_octave(pitch: str, accidental: str, octave: int) -> str:
@@ -23,14 +49,14 @@ def _note_char_from_octave(pitch: str, accidental: str, octave: int) -> str:
         return (pitch * abs(octave)) + accidental
 
 
-def _kern_note(note: Dict[str, int], use_sharps: bool = True) -> str:
+def _kern_note(note: Dict[str, int], use_sharps: bool = True) -> List[str]:
     """
     Inputs:
     - note (Dict[str, int]), as taken from hooktheory representation. Should have 4 keys: onset, offset, octave, and pitch_class.
     Output:
     - Corresponding kern notation
     """
-    out = ""
+    out = []
     onset, offset, octave, pc = (
         note["onset"],
         note["offset"],
@@ -39,14 +65,33 @@ def _kern_note(note: Dict[str, int], use_sharps: bool = True) -> str:
     )
     # Start with duration number
     duration = offset - onset
-    out += DURATION_TO_KERN[duration]
+    try:
+        durations = [DURATION_TO_KERN[duration]]
+        # out += DURATION_TO_KERN[duration]
+    except KeyError:
+        # weird duration should be represented with tied notes
+        print(f"Couldn't find duration {duration} in known durations")
+        durations = find_best_durations_combination(duration)
     # Now determine pitch class name and use octave info
     pcsharp, pcflat = PC_TO_NAMES[pc]
     pc_char = pcsharp if use_sharps else pcflat
     pitch = pc_char[0]
     accidental = pc_char[1] if len(pc_char) > 1 else ""
     note_char = _note_char_from_octave(pitch, accidental, octave)
-    out += note_char
+    for i, dur in enumerate(durations):
+        token = ""
+        if len(durations) == 1:
+            token += dur
+            token += note_char
+            out.append(token)
+        else:
+            if i == 0:
+                token = f"[{dur}{note_char}"
+            elif i == len(durations) - 1:
+                token = f"{dur}{note_char}]"
+            else:
+                token = f"{dur}{note_char}"
+            out.append(token)
     return out
 
 
@@ -172,9 +217,9 @@ def make_notes_from_melody(
                 next_key_onset = None
         if current_onset > previous_offset:
             # need to add a rest
-            out.append(_make_rest(current_onset - previous_offset))
+            out.extend(_make_rest(current_onset - previous_offset))
             current_bar_duration += current_onset - previous_offset
-        out.append(_kern_note(note, use_sharps))
+        out.extend(_kern_note(note, use_sharps))
         previous_offset = note["offset"]
         current_bar_duration += note["offset"] - note["onset"]
         if current_bar_duration >= bar_duration:
@@ -188,5 +233,5 @@ def make_notes_from_melody(
                 out.append(f"={bar_counter}")
     # Add final rest if necessary
     if current_bar_duration < bar_duration:
-        out.append(_make_rest(bar_duration - current_bar_duration))
+        out.extend(_make_rest(bar_duration - current_bar_duration))
     return out
