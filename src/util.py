@@ -55,13 +55,11 @@ def find_best_note_combination(
             if abs(dur - last_note_duration) < tolerance
         ]
         if not matching_notes:
-            raise ValueError(
-                f"No standard note with duration {last_note_duration}"
-            )
-
-        # Subtract the last note
+            last_note = find_best_note_combination(last_note_duration)
+            last_note = [KERN_TO_DURATION[r] for r in last_note]
+        else:
+            last_note = [matching_notes[0]]  # we'll add it at the end
         remaining -= last_note_duration
-        last_note = matching_notes[0]  # we'll add it at the end
 
     for val in sorted_dur:
         count = int(remaining // val)
@@ -79,7 +77,7 @@ def find_best_note_combination(
         )
 
     if last_note is not None:
-        result.append(last_note)
+        result.extend(last_note)
 
     return [DURATION_TO_KERN[r] for r in result]
 

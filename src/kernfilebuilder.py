@@ -27,9 +27,9 @@ def _make_rest(duration: float) -> List[str]:
             out.append(token)
         else:
             if i == 0:
-                token = f"[{dur}r"
+                token = f"{dur}r"
             elif i == len(durations) - 1:
-                token = f"{dur}r]"
+                token = f"{dur}r"
             else:
                 token = f"{dur}r"
             out.append(token)
@@ -50,7 +50,15 @@ def _note_char_from_octave(pitch: str, accidental: str, octave: int) -> str:
         return (pitch * abs(octave)) + accidental
 
 
-def _kern_note(note: Dict[str, int], use_sharps: bool = True) -> List[str]:
+def _kern_note(
+    pitch_class: int,
+    octave: int,
+    duration: float,
+    use_sharps: bool = True,
+    no_tie_constraints: bool = False,
+    open_tie: bool = False,
+    close_tie: bool = False,
+) -> List[str]:
     """
     Inputs:
     - note (Dict[str, int]), as taken from hooktheory representation. Should have 4 keys: onset, offset, octave, and pitch_class.
@@ -58,14 +66,6 @@ def _kern_note(note: Dict[str, int], use_sharps: bool = True) -> List[str]:
     - Corresponding kern notation
     """
     out = []
-    onset, offset, octave, pc = (
-        note["onset"],
-        note["offset"],
-        note["octave"],
-        note["pitch_class"],
-    )
-    # Start with duration number
-    duration = offset - onset
     try:
         durations = [DURATION_TO_KERN[duration]]
         # out += DURATION_TO_KERN[duration]
@@ -74,25 +74,22 @@ def _kern_note(note: Dict[str, int], use_sharps: bool = True) -> List[str]:
         print(f"Couldn't find duration {duration} in known durations")
         durations = find_best_durations_combination(duration)
     # Now determine pitch class name and use octave info
-    pcsharp, pcflat = PC_TO_NAMES[pc]
+    pcsharp, pcflat = PC_TO_NAMES[pitch_class]
     pc_char = pcsharp if use_sharps else pcflat
     pitch = pc_char[0]
     accidental = pc_char[1] if len(pc_char) > 1 else ""
     note_char = _note_char_from_octave(pitch, accidental, octave)
     for i, dur in enumerate(durations):
         token = ""
-        if len(durations) == 1:
-            token += dur
-            token += note_char
-            out.append(token)
-        else:
-            if i == 0:
-                token = f"[{dur}{note_char}"
-            elif i == len(durations) - 1:
-                token = f"{dur}{note_char}]"
-            else:
-                token = f"{dur}{note_char}"
-            out.append(token)
+        token += dur
+        token += note_char
+        out.append(token)
+    if len(out) > 1 and no_tie_constraints:
+        open_tie, close_tie = True, True
+    if open_tie:
+        out[0] = "[" + out[0]
+    if close_tie:
+        out[-1] = out[-1] + "]"
     return out
 
 
@@ -140,7 +137,10 @@ def _get_bar_duration(kern_meter: str) -> float:
 
 
 def _split_tied_notes2(
-    kern_melody: List[str], end_tie_duration: float, bar_number: int
+    kern_melody: List[str],
+    end_tie_duration: float,
+    bar_number: int,
+    is_rest: bool = False,
 ) -> List[str]:
     last_note = kern_melody.pop()
     if "]" in last_note:
@@ -165,11 +165,15 @@ def _split_tied_notes2(
     for i, dur in enumerate(durations):
         token = dur + pitch
         if i == 0:
-            token = "[" + token
+            if not is_rest:
+                # no need to tie rests
+                token = "[" + token
         kern_melody.append(token)
     kern_melody.append(f"={bar_number}")
     last_token = last_duration + pitch
-    kern_melody.append(last_token + "]")
+    if not is_rest:
+        last_token = last_token + "]"
+    kern_melody.append(last_token)
     return kern_melody
 
 
@@ -219,6 +223,8 @@ def make_notes_from_melody(
     previous_offset = 0
     for note in melody:
         current_onset = note["onset"]
+        pitch_class = note["pitch_class"]
+        octave = note["octave"]
         # Update meter if necessary
         if next_meter_onset is not None and current_onset >= next_meter_onset:
             current_meter_idx += 1
@@ -252,31 +258,73 @@ def make_notes_from_melody(
                 next_key_onset = None
         if current_onset > previous_offset:
             # need to add a rest
-            out.extend(_make_rest(current_onset - previous_offset))
-            current_bar_duration += current_onset - previous_offset
-            if current_bar_duration >= bar_duration:
+            rest_duration = current_onset - previous_offset
+            if current_bar_duration + rest_duration >= bar_duration:
+                first_rest_duration = bar_duration - current_bar_duration
+                remaining_rest_duration = rest_duration - first_rest_duration
+                out.extend(_make_rest(first_rest_duration))
                 bar_counter += 1
-                current_bar_duration -= bar_duration
-                if current_bar_duration > 0:
-                    # previous note should be tied between two bars
-                    out = _split_tied_notes2(
-                        out, current_bar_duration, bar_counter
-                    )
-                else:
-                    # just add the bar line
-                    out.append(f"={bar_counter}")
-        out.extend(_kern_note(note, use_sharps))
-        previous_offset = note["offset"]
-        current_bar_duration += note["offset"] - note["onset"]
-        if current_bar_duration >= bar_duration:
-            bar_counter += 1
-            current_bar_duration -= bar_duration
-            if current_bar_duration > 0:
-                # previous note should be tied between two bars
-                out = _split_tied_notes2(out, current_bar_duration, bar_counter)
-            else:
-                # just add the bar line
                 out.append(f"={bar_counter}")
+                while remaining_rest_duration >= bar_duration:
+                    out.extend(_make_rest(bar_duration))
+                    remaining_rest_duration -= bar_duration
+                    bar_counter += 1
+                    out.append(f"={bar_counter}")
+                if remaining_rest_duration > 0:
+                    out.extend(_make_rest(remaining_rest_duration))
+                    current_bar_duration = remaining_rest_duration
+                else:
+                    current_bar_duration = 0
+            else:
+                out.extend(_make_rest(rest_duration))
+                current_bar_duration += rest_duration
+        note_duration = note["offset"] - note["onset"]
+        previous_offset = note["offset"]
+        if current_bar_duration + note_duration >= bar_duration:
+            first_note_duration = bar_duration - current_bar_duration
+            remaining_note_duration = note_duration - first_note_duration
+            out.extend(
+                _kern_note(
+                    pitch_class,
+                    octave,
+                    first_note_duration,
+                    use_sharps,
+                    open_tie=remaining_note_duration > 0,
+                )
+            )
+            bar_counter += 1
+            out.append(f"={bar_counter}")
+            while remaining_note_duration >= bar_duration:
+                out.extend(
+                    _kern_note(pitch_class, octave, bar_duration, use_sharps)
+                )
+                remaining_note_duration -= bar_duration
+                bar_counter += 1
+                out.append(f"={bar_counter}")
+            if remaining_note_duration > 0:
+                out.extend(
+                    _kern_note(
+                        pitch_class,
+                        octave,
+                        remaining_note_duration,
+                        use_sharps,
+                        close_tie=True,
+                    )
+                )
+                current_bar_duration = remaining_note_duration
+            else:
+                current_bar_duration = 0
+        else:
+            out.extend(
+                _kern_note(
+                    pitch_class,
+                    octave,
+                    note_duration,
+                    use_sharps,
+                    no_tie_constraints=True,
+                )
+            )
+            current_bar_duration += note_duration
     # Add final rest if necessary
     if current_bar_duration < bar_duration:
         out.extend(_make_rest(bar_duration - current_bar_duration))
