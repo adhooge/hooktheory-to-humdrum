@@ -8,11 +8,17 @@ from src.util import DURATION_TO_KERN, KERN_TO_DURATION, _count_accidentals
 CHORD_INTERVALS = {
     "major": [4, 3],  # Tonic, major 3rd, perfect 5th
     "minor": [3, 4],  # Tonic, minor 3rd, perfect 5th
+    "seventh": [4, 3, 3],  # Tonic, major 3rd, P5th, minor 7th
+    "minseventh": [3, 4, 3],  # Tonic, minor 3rd, P5th, minor 7th
+    "majseventh": [4, 3, 4],  # Tonic, major 3rd, P5th, major 7th
 }
 
 CHORD_DISPLAY_NAMES = {
     "major": lambda x: x.upper(),
     "minor": lambda x: x.upper() + "m",
+    "seventh": lambda x: x.upper() + "7",
+    "minseventh": lambda x: x.upper() + "min7",
+    "majseventh": lambda x: x.upper() + "maj7",
 }
 
 
