@@ -7,7 +7,12 @@ import src.util as U
 
 def convert(json_data: Dict) -> str:
     # check data validity before processing
-    if json_data["annotations"]["melody"] is None:
+    if (
+        json_data["annotations"]["melody"] is None
+        or json_data["annotations"]["harmony"] is None
+        or len(json_data["annotations"]["melody"]) == 0
+        or len(json_data["annotations"]["harmony"]) == 0
+    ):
         return ""
     # Prepare metadata
     title = U.get_title(json_data)
@@ -32,6 +37,8 @@ def convert(json_data: Dict) -> str:
     # Final string preparation
     melody.append("*-")
     harmony.append("*-")
+
+    assert len(melody) == len(harmony)
     ## Merge Melody and harmony
     out_list = [melody[i] + "\t" + harmony[i] for i in range(len(melody))]
     ## Convert list to str
