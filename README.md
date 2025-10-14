@@ -36,7 +36,22 @@ This repository is organised as follows:
 └── requirements.txt
 ```
 
-## Testing
+## Usage
+
+A single `json` representation of a song from HookTheory can be processed using `src.converter.convert`.
+
+It is also possible to run the main script with the command below, from the root of the project.
+
+```
+python -m src.main
+```
+
+:warning: This script expects [this file](https://github.com/chrisdonahue/sheetsage-data/blob/main/hooktheory/Hooktheory.json.gz) to be unzipped in the `data` folder and simply called `Hooktheory.json`. 
+You can tweak the `src/main.py` file if you want a different behaviour.
+
+The resulting `.krn` files will be written in `data/kern` until an error is thrown.
+
+### Testing
 
 Unit tests were written using `pytest` to ensure that core functions are working properly.
 
@@ -47,3 +62,12 @@ PYTHONPATH=. pytest -v
 ```
 
 All tests should pass!
+
+## Limitations
+
+Currently there are still a few issues with the code in this repo:
+
+- Enharmonic note names are not always chosen correctly, the current heuristic is to favour sharps or flats if it reduces the global number of accidentals.
+- There are still a few issues with tied notes in specific situations and the interaction with chords, some files cannot be processed because of that.
+- The resulting scores can be ugly because the beams need to be specified manually in humdrum, and proper beaming require to look at the current meter and is currently out-of-scope.
+- Some scores might look like they are missing chords in the graphical rendering, usually it's due to the fact that the `**text` representation used to write the chords in humdrum hides the text on rest notes. If you check the `krn` files, all chords are written properly.
