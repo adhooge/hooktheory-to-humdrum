@@ -6,7 +6,6 @@ from src.util import (
     KERN_TO_DURATION,
     _count_accidentals,
     find_best_durations_combination,
-    find_best_note_combination,
 )
 
 
